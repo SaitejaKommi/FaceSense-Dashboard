@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
 
+    # Google Auth
+    GOOGLE_CLIENT_ID: str = "510613444416-q052kvlak7f2nn0ga4736b257rvlppni.apps.googleusercontent.com"
+
     # CORS - Allow specific origins in development
     CORS_ORIGINS: list = [
         "http://localhost:5173",

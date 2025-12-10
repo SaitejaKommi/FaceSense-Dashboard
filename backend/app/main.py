@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
-from app.db import connect_to_mongo, close_mongo_connection, get_db
-from app import auth, students, attendance, classes, analytics, notifications
-from app.utils import get_password_hash
-from app.models import UserModel
+from .core.config import settings
+from .db import connect_to_mongo, close_mongo_connection, get_db
+from . import auth, students, attendance, classes, analytics, notifications
+from . import auth_google
+from .utils import get_password_hash
+from .models import UserModel
 
 app = FastAPI(
     title="FaceSense API",
@@ -30,24 +31,10 @@ async def startup_event():
     print("[STARTUP] FaceSense API Starting...")
     await connect_to_mongo()
     print("[STARTUP] Connected to MongoDB")
-
-    db = await get_db()
-    users = db["users"]
-
-    # Check demo user
-    existing = await users.find_one({"username": "teacher1"})
-
-    if not existing:
-        hashed = get_password_hash("password123")
-        demo_user = UserModel(
-            username="teacher1",
-            hashed_password=hashed,
-            role="teacher"
-        )
-        await users.insert_one(demo_user.dict())
-        print("[STARTUP] Demo user created: teacher1 / password123")
-    else:
-        print("[STARTUP] Demo user already exists")
+    
+    # Create Indexes for Scalability
+    from .db import create_indexes
+    await create_indexes()
 
 
 # --------------------------------------------------------
@@ -81,6 +68,7 @@ def health():
 # 📌 Routers
 # --------------------------------------------------------
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+app.include_router(auth_google.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(students.router, prefix="/api/students", tags=["Students"])
 app.include_router(attendance.router, prefix="/api/attendance", tags=["Attendance"])
 app.include_router(classes.router, prefix="/api/classes", tags=["Classes"])

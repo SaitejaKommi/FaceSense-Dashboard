@@ -6,8 +6,12 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
+class GoogleLoginIn(BaseModel):
+    credential: str
+
 class UserCreate(BaseModel):
     username: str
+    email: str
     password: str
     role: Optional[str] = "teacher"
 
@@ -28,6 +32,7 @@ class StudentOut(StudentBase):
 class AttendanceIn(BaseModel):
     roll: str
     status: str = "Present"
+    timestamp: Optional[datetime] = None
     confidence: Optional[float] = None
 
 class AttendanceOut(BaseModel):

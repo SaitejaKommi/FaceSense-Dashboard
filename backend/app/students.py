@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from bson import ObjectId
-from app import schemas
-from app.db import get_db
+from . import schemas
+from .db import get_db
 
 router = APIRouter()
 

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from datetime import datetime, date, timedelta
 from bson import ObjectId
-from app import schemas
-from app.db import get_db
+from . import schemas
+from .db import get_db
 
 router = APIRouter(tags=["Attendance"])
 
@@ -21,11 +21,36 @@ async def mark_attendance(att: schemas.AttendanceIn, db=Depends(get_db)):
         raise HTTPException(status_code=404, detail="Student not found")
 
     attendance_collection = db["attendance"]
+    
+    # ------------------------------------------------
+    # 🕒 1. Determine Timestamp
+    # ------------------------------------------------
+    event_time = att.timestamp if att.timestamp else datetime.utcnow()
+    
+    # ------------------------------------------------
+    # 🚫 2. Duplicate Check (Debounce: 60 seconds)
+    # Check if this student was marked in the last 60 seconds
+    # ------------------------------------------------
+    time_threshold = event_time - timedelta(seconds=60)
+    
+    existing_recent = await attendance_collection.find_one({
+        "student_id": student["_id"],
+        "timestamp": { "$gt": time_threshold }
+    })
+    
+    if existing_recent:
+        # Already marked recently - Skip insertion
+        # Return the existing record to satisfy the caller without error
+        existing_recent["id"] = str(existing_recent["_id"])
+        existing_recent["student_id"] = str(existing_recent["student_id"])
+        existing_recent.pop("_id", None)
+        return existing_recent
+
     new_attendance = {
         "student_id": student["_id"],
         "student_name": student["name"],
         "roll": att.roll,
-        "timestamp": datetime.utcnow(),
+        "timestamp": event_time,
         "status": att.status or "Present",
         "confidence": att.confidence,
     }

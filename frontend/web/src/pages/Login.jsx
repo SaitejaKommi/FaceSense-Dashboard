@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import axiosInstance from '../api/axios'
 import { Lock, Mail, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { GoogleLogin } from '@react-oauth/google'
+import { jwtDecode } from 'jwt-decode'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -12,6 +14,36 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setLoading(true)
+      setError('')
+
+      const res = await axiosInstance.post('/api/auth/google/login', {
+        credential: credentialResponse.credential,
+      })
+
+      if (res.data.access_token) {
+        const decodedToken = jwtDecode(res.data.access_token)
+        const email = decodedToken.sub || 'User'
+
+        login(res.data.access_token, email)
+        navigate('/dashboard')
+      }
+    } catch (err) {
+      console.error('Google login failed:', err)
+      const errorMessage = err.response?.data?.detail || 'Google Login failed. Please try again.'
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleError = () => {
+    console.error('Google Login Failed')
+    setError('Google Login failed. Please try again.')
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -28,7 +60,7 @@ export default function Login() {
       })
 
       const { access_token } = response.data
-      // Use auth context to update app state reactively
+      // Save token and username in AuthContext + localStorage
       login(access_token, username)
       navigate('/dashboard')
 
@@ -40,33 +72,50 @@ export default function Login() {
     }
   }
 
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#08091C] via-slate-900 to-[#0f1729] flex items-center justify-center p-4 relative overflow-hidden">
-      
-      {/* Background Blobs */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl opacity-50 -z-10"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl opacity-50 -z-10"></div>
+    <div className="min-h-screen bg-[#08091C] flex items-center justify-center p-4">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[20%] -left-[10%] w-[70vw] h-[70vw] bg-purple-900/20 rounded-full blur-[120px]" />
+        <div className="absolute -bottom-[20%] -right-[10%] w-[70vw] h-[70vw] bg-blue-900/20 rounded-full blur-[120px]" />
+      </div>
 
       <div className="w-full max-w-md backdrop-blur-xl bg-slate-800/50 rounded-2xl border border-slate-700/50 shadow-2xl p-8 space-y-6">
-
-        {/* Branding */}
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center mx-auto shadow-lg shadow-blue-500/30">
-            <span className="text-white text-3xl font-bold">F</span>
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
+            <span className="text-2xl font-bold text-white">FS</span>
           </div>
-          <div>
-            <h1 className="text-4xl font-bold text-white">FaceSense</h1>
-            <p className="text-slate-400 text-sm mt-1">Attendance Tracking System</p>
-          </div>
+          <h2 className="text-3xl font-bold text-white mb-2">Sign in to FaceSense</h2>
+          <p className="text-slate-400">Sign in with Google or your username & password to access your dashboard.</p>
         </div>
-
-        {/* Error Alert */}
         {error && (
           <div className="p-4 bg-red-900/30 border border-red-700/50 rounded-lg flex items-start gap-3">
             <AlertCircle className="text-red-400 mt-0.5 w-5 h-5" />
             <p className="text-red-300 text-sm font-medium">{error}</p>
           </div>
         )}
+
+        {/* Google sign-in */}
+        <div className="flex justify-center mb-6">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            theme="filled_blue"
+            size="large"
+            shape="pill"
+            width="300"
+          />
+        </div>
+
+        {/* Divider */}
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-700"></div>
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="px-2 bg-slate-800/50 text-slate-400">Or sign in with username & password</span>
+          </div>
+        </div>
 
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
@@ -128,6 +177,20 @@ export default function Login() {
 
         </form>
 
+        {/* Demo Credentials */}
+        <div className="pt-6 border-t border-slate-700/50 space-y-3">
+          <p className="text-slate-400 text-xs font-semibold uppercase">Demo Credentials:</p>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500">Username:</span>
+              <span className="text-white font-mono bg-slate-700/50 px-3 py-1 rounded border border-slate-600">teacher1</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500">Password:</span>
+              <span className="text-white font-mono bg-slate-700/50 px-3 py-1 rounded border border-slate-600">password123</span>
+            </div>
+          </div>
+        </div>
 
         {/* Registration Link */}
         <div className="pt-4 border-t border-slate-700/50">
@@ -144,6 +207,12 @@ export default function Login() {
 
       </div>
 
+      <p className="text-center text-slate-500 text-xs mt-8">
+        Secure Facial Recognition Attendance System
+      </p>
+
     </div>
-  )
+  );
 }
+
+

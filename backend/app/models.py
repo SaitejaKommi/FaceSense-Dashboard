@@ -28,7 +28,10 @@ class PyObjectId(ObjectId):
 class UserModel(BaseModel):
     id: Optional[PyObjectId] = Field(default=None, alias="_id")
     username: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
     hashed_password: str
+    picture_url: Optional[str] = None
     role: str = "teacher"
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

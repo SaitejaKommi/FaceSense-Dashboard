@@ -34,9 +34,9 @@ function App() {
       ) : (
         // PRIVATE AUTHENTICATED LAYOUT
         <div className="flex min-h-screen bg-[#08091C] text-white overflow-hidden">
-          
+
           {/* LEFT SIDEBAR */}
-          <aside className="w-64 h-full bg-[#0C0D23] border-r border-gray-800 flex-shrink-0">
+          <aside className="w-64 h-full bg-[#0C0D23] border-r border-gray-800 flex-shrink-0 hidden md:flex">
             <Sidebar />
           </aside>
 
@@ -44,10 +44,10 @@ function App() {
           <div className="flex flex-col flex-1 overflow-hidden">
 
             {/* TOP NAV */}
-            <header className="h-16 bg-[#0C0D23] border-b border-gray-800 
-              flex items-center px-6 shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
+            {/* Nav component handles its own container styling now */}
+            <div className="flex-shrink-0 z-50">
               <Nav />
-            </header>
+            </div>
             {/* SCROLLABLE MAIN CONTENT */}
             <main className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-track-[#0C0D23] scrollbar-thumb-blue-700/50 hover:scrollbar-thumb-blue-600/70">
               <Routes>
@@ -58,7 +58,7 @@ function App() {
                 <Route path="/classes" element={<ProtectedRoute><Classes /></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                
+
                 {/* Default redirect */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>

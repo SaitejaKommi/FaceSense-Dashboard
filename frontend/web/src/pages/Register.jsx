@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, UserPlus, AlertCircle, CheckCircle, Lock, Mail } from 'lucide-react'
+import { ArrowLeft, UserPlus, AlertCircle, CheckCircle, Lock, Mail, User } from 'lucide-react'
 import axiosInstance from '../api/axios'
 import { useAuth } from '../context/AuthContext'
+import { GoogleLogin } from '@react-oauth/google'
+import { jwtDecode } from 'jwt-decode'
 
 export default function Register() {
   const navigate = useNavigate()
   const { login } = useAuth()
   const [formData, setFormData] = useState({
     username: '',
+    email: '',
     password: '',
     confirmPassword: '',
     role: 'teacher'
@@ -16,6 +19,38 @@ export default function Register() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setLoading(true)
+      setError('')
+
+      const res = await axiosInstance.post('/api/auth/google/login', {
+        credential: credentialResponse.credential,
+      })
+
+      if (res.data.access_token) {
+        const decodedToken = jwtDecode(res.data.access_token)
+        const email = decodedToken.sub || 'User'
+
+        login(res.data.access_token, email)
+        navigate('/dashboard')
+      }
+    } catch (err) {
+      console.error('Google signup/login failed:', err)
+      const errorMessage = err.response?.data?.detail || 'Google signup failed. Please try again.'
+      setError(errorMessage)
+      alert('Google Signup Error: ' + errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleError = () => {
+    console.error('Google Login Failed')
+    setError('Google signup failed. Please try again.')
+    alert('Google signup failed. Please try again.')
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -31,7 +66,7 @@ export default function Register() {
     setError('')
 
     // Validation
-    if (!formData.username || !formData.password || !formData.confirmPassword) {
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
       setError('Please fill in all fields')
       return
     }
@@ -46,6 +81,11 @@ export default function Register() {
       return
     }
 
+    if (!formData.email.includes('@')) {
+      setError('Please enter a valid email address')
+      return
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match')
       return
@@ -55,6 +95,7 @@ export default function Register() {
       setLoading(true)
       const response = await axiosInstance.post('/api/auth/register', {
         username: formData.username,
+        email: formData.email,
         password: formData.password,
         role: formData.role
       })
@@ -113,13 +154,40 @@ export default function Register() {
           </div>
         )}
 
+        {/* Google Signup */}
+        <div className="space-y-3">
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              theme="filled_blue"
+              size="large"
+              shape="pill"
+              width="300"
+            />
+          </div>
+          <p className="text-xs text-center text-slate-400">
+            Sign up or sign in with your Google account. We’ll create a new FaceSense profile on first login.
+          </p>
+        </div>
+
+        {/* Divider */}
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-700"></div>
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="px-2 bg-slate-800/50 text-slate-400">Or sign up with email</span>
+          </div>
+        </div>
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Username */}
           <div>
             <label className="block text-sm font-semibold text-slate-200 mb-1">Username</label>
             <div className="relative group">
-              <Mail className="absolute left-4 top-3.5 text-slate-400 w-5 h-5 group-focus-within:text-blue-400" />
+              <User className="absolute left-4 top-3.5 text-slate-400 w-5 h-5 group-focus-within:text-blue-400" />
               <input
                 disabled={loading}
                 type="text"
@@ -133,6 +201,26 @@ export default function Register() {
               />
             </div>
             <p className="text-xs text-slate-400 mt-1">At least 3 characters</p>
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-200 mb-1">Email</label>
+            <div className="relative group">
+              <Mail className="absolute left-4 top-3.5 text-slate-400 w-5 h-5 group-focus-within:text-blue-400" />
+              <input
+                disabled={loading}
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Enter your email address"
+                className="w-full pl-12 pr-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 
+                focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all disabled:opacity-50"
+                required
+              />
+            </div>
+            <p className="text-xs text-slate-400 mt-1">Use the same email you sign in with Google.</p>
           </div>
 
           {/* Password */}

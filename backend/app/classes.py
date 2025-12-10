@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
-from app.db import get_db
+from .db import get_db
 from bson import ObjectId
 
 router = APIRouter(tags=["Classes"])
